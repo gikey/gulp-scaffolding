@@ -69,3 +69,4 @@ exports.clean = (project, cb) => {
     fs.writeFileSync('config.json', JSON.stringify(config), 'utf8');
     return cb();
 };
+

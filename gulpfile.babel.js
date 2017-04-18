@@ -218,3 +218,4 @@ gulp.task('browser-sync', ['resetEnv', settings.styleMethod], () => {
 });
 
 gulp.task('default', ['browser-sync']);
+
