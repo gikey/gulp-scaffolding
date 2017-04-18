@@ -14,7 +14,7 @@ npm i
 gulp --pro demo --type sass --open false 
 ```
 
-参数都是可选(默认创建的项目目录为test, 使用css, 不打开浏览器)
+参数都是可选(默认创建的项目目录为test, 使用css, 打开浏览器)
 
 3.基本项目目录
 
