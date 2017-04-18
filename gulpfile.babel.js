@@ -1,5 +1,5 @@
 import gulp from 'gulp';
-import init from './init';
+import file from './file';
 import prettify from 'gulp-html-prettify';
 import clean from 'gulp-clean';
 import sourcemaps from 'gulp-sourcemaps';
@@ -15,16 +15,19 @@ import postcss from 'gulp-postcss';
 import jsonFormat from 'gulp-json-format';
 import plumber from 'gulp-plumber';
 import imageResize from 'gulp-image-resize';
+import rename from 'gulp-rename';
+import inline from 'gulp-inline';
+import htmlMinifier from 'gulp-html-minifier';
 
 const settings = {
-    project: gulp.env.pro || 'test',
+    project: gulp.env.pro,
     styleMethod: gulp.env.type || 'css',
     script: 'js',
     images: false,
     mock: false,
     styleCompress: true,
     jsCompress: false,
-    openBrowser: true,
+    openBrowser: gulp.env.open == undefined,
     port: 3030,
     imgResizeWidth: 100,
     imgResizeHeight: 100,
@@ -33,7 +36,7 @@ const settings = {
 
 let paths = {
     root: './',
-    filePath: settings.project,
+    filePath: settings.project || 'test',
     buildPath: `${settings.project}/${settings.styleMethod}`,
     sass: `${settings.project}/sass`,
     less: `${settings.project}/less`,
@@ -50,15 +53,16 @@ const percessors = [
 ];
 
 gulp.task('init', () => {
-    init({
-        dir: settings.project,
+    file.init({
+        dir: settings.project || 'test',
         style: settings.styleMethod,
         js: settings.script,
         mock: settings.mock,
         image: settings.images
     }, () => {
         setTimeout(() => {
-            gulp.src(`${settings.project}/**/*.html`)
+            let pro = settings.project || 'test';
+            gulp.src(`${pro}/**/*.html`)
                 .pipe(prettify({ indent_char: ' ', indent_size: 2 }))
                 .pipe(gulp.dest(paths.filePath))
 
@@ -125,16 +129,41 @@ gulp.task('stylus', () => {
 //         .pipe(browserSync.stream({match:'**/*.js'}));
 // });
 
+gulp.task('js', () => {
+    return gulp.src('test/js/fb.js')
+        .pipe(uglify())
+        .pipe(rename('index.js'))
+        .pipe(gulp.dest('test/js'))
+})
+
 gulp.task('clean', ['resetEnv'], () => {
     settings.project = gulp.env.pro || settings.project;
+    file.clean(settings.project, () => {
+        setTimeout(() => {
+            gulp.src(`${paths.root}/config.json`)
+                .pipe(jsonFormat(4))
+                .pipe(gulp.dest(paths.root))
+        }, 500);
+
+    });
     return gulp.src(settings.project)
         .pipe(clean())
 });
 
 gulp.task('resetEnv', () => {
     let config = require('./config.json');
-    settings.project = config.project;
-    settings.styleMethod = config.type;
+    let _config = null;
+    if (settings.project) {
+        config.forEach((value) => {
+            if(value.project == settings.project) {
+                _config = value;
+            }
+        })
+    } else {
+        _config = config[config.length-1]
+    }
+    settings.project = _config.project;
+    settings.styleMethod = _config.type;
     for (let p in paths) {
         if (p != 'root') {
             if (p == 'buildPath') {
@@ -148,7 +177,7 @@ gulp.task('resetEnv', () => {
     }
 });
 
-gulp.task('imageResize', function() {
+gulp.task('imageResize', () => {
     gulp.src(`${paths.images}/**/*`)
         .pipe(imageResize({
             width: settings.imgResizeWidth,
@@ -160,6 +189,21 @@ gulp.task('imageResize', function() {
         .pipe(gulp.dest(paths.images));
 });
 
+gulp.task('inline', ['resetEnv'], () => {
+    settings.project = gulp.env.pro || settings.project;
+    return gulp.src(`${settings.project}/*.html`)
+        .pipe(inline({
+            // js: uglify,
+            // css: csso,
+            disabledTypes: ['img', 'svg'],
+            // ignore: ['js/index.js']
+        }))
+        .pipe(htmlMinifier({collapseWhitespace: true}))
+        .pipe(rename('index.inline.html'))
+        .pipe(gulp.dest(settings.project))
+
+})
+
 gulp.task('browser-sync', ['resetEnv', settings.styleMethod], () => {
     browserSync.init({
         server: paths.root,
@@ -169,7 +213,6 @@ gulp.task('browser-sync', ['resetEnv', settings.styleMethod], () => {
     });
     gulp.watch(`${paths.buildPath}/**/*`, [settings.styleMethod]);
     // gulp.watch(`${paths.js}/app.js`,['es6']);
-    console.log(`${paths.filePath}/**/*.html`);
     gulp.watch([`${paths.filePath}/**/*.html`, `${paths.filePath}/js/**/*.js`]).on('change', browserSync.reload);
     // gulp.watch(`${paths.project}/*.${settings.tplMethod}`, [settings.tplMethod]);
 });

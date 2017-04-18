@@ -1,5 +1,7 @@
 import fs from 'fs';
-module.exports = (params, cb) => {
+import config from './config.json';
+
+exports.init = (params, cb) => {
     let project = {
         dir: params.dir,
         js: params.js,
@@ -7,17 +9,13 @@ module.exports = (params, cb) => {
         style: params.style,
         mock: params.mock
     }
-
-    fs.writeFileSync('config.json', `{
-        "project": "${project.dir}",
-        "type": "${project.style}"
-    }`, 'utf8');
-
     if (!project.dir) {
         console.log(`${'*'.repeat(38)}\n New project name must be created!!! \n${'*'.repeat(38)}`)
     } else if (fs.existsSync(project.dir)) {
         console.log(`${'*'.repeat(32)}\nThe directory already exists !!!\n${'*'.repeat(32)}`)
     } else {
+        config.push({"project":`${project.dir}`, "type": `${project.style}`});
+        fs.writeFileSync('config.json', JSON.stringify(config), 'utf8');
         fs.mkdir(`${project.dir}`, (err) => {
             if (err) throw err;
             fs.writeFileSync(`${project.dir}/index.html`, `
@@ -31,7 +29,6 @@ module.exports = (params, cb) => {
                 <link rel="stylesheet" href="css/style.css">
               </head>
               <body>
-
               <script src="js/index.js"></script>
               </body>
               </html>
@@ -52,12 +49,23 @@ module.exports = (params, cb) => {
                         }
                         fs.writeFileSync(`${project.dir}/${project[d]}/style.${suffix}`, '');
                     } else if (d == 'mock') {
-                        fs.writeFileSync(`${project.dir}/${project[d]}/data.json`, '{}')
+                        fs.writeFileSync(`${project.dir}/${project[d]}/data.json`, '{}');
                     }
                 }
             }
-            console.log(`${'*'.repeat(25)}\nInitialized successfully!\n${'*'.repeat(25)}`)
+            console.log(`${'*'.repeat(25)}\nInitialized successfully!\n${'*'.repeat(25)}`);
         });
     }
+    return cb();
+};
+
+exports.clean = (project, cb) => {
+    for(var i = 0; i < config.length; i++) {
+        if(config[i].project == project) {
+            break;
+        }
+    }
+    config.splice(i, 1);
+    fs.writeFileSync('config.json', JSON.stringify(config), 'utf8');
     return cb();
 };

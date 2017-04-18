@@ -1,4 +1,14 @@
-{
-    "project": "react",
-    "type": "stylus"
-}
+[
+    {
+        "project": "react",
+        "type": "stylus"
+    },
+    {
+        "project": "angular",
+        "type": "stylus"
+    },
+    {
+        "project": "test",
+        "type": "css"
+    }
+]
